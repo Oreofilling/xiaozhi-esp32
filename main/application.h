@@ -73,6 +73,12 @@ public:
     void WakeWordInvoke(const std::string& wake_word);
     void PlaySound(const std::string_view& sound);
     bool CanEnterSleepMode();
+    void TestSendAudio(const std::vector<uint8_t>& data);
+    void TestSendText(const std::string& text);
+    void TestOpenAudioChannel();
+    void TestCloseAudioChannel();
+    void TestSendStartListening();
+    void TestSendStopListening();
 
 private:
     Application();
@@ -128,6 +134,7 @@ private:
     void OnClockTimer();
     void SetListeningMode(ListeningMode mode);
     void AudioLoop();
+
 };
 
 #endif // _APPLICATION_H_

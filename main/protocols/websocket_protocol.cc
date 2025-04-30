@@ -64,6 +64,8 @@ bool WebsocketProtocol::OpenAudioChannel() {
     if (websocket_ != nullptr) {
         delete websocket_;
     }
+    //输出日志
+    ESP_LOGW(TAG, "[ZB]Opening audio channel");
 
     busy_sending_audio_ = false;
     error_occurred_ = false;
@@ -115,6 +117,7 @@ bool WebsocketProtocol::OpenAudioChannel() {
 
     // Send hello message to describe the client
     // keys: message type, version, audio_params (format, sample_rate, channels)
+    ESP_LOGW(TAG, "[ZB]Sending hello message");
     std::string message = "{";
     message += "\"type\":\"hello\",";
     message += "\"version\": 1,";
@@ -127,6 +130,7 @@ bool WebsocketProtocol::OpenAudioChannel() {
     }
 
     // Wait for server hello
+    ESP_LOGW(TAG, "[ZB]Waiting for server hello");
     EventBits_t bits = xEventGroupWaitBits(event_group_handle_, WEBSOCKET_PROTOCOL_SERVER_HELLO_EVENT, pdTRUE, pdFALSE, pdMS_TO_TICKS(10000));
     if (!(bits & WEBSOCKET_PROTOCOL_SERVER_HELLO_EVENT)) {
         ESP_LOGE(TAG, "Failed to receive server hello");

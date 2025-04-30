@@ -15,6 +15,7 @@
 #include <cJSON.h>
 #include <driver/gpio.h>
 #include <arpa/inet.h>
+#include "debug.h"
 
 #define TAG "Application"
 
@@ -282,6 +283,8 @@ void Application::ToggleChatState() {
 }
 
 void Application::StartListening() {
+    ESP_LOGW(TAG, "[ZB]Start listening,device_state_ = %d", device_state_);
+    SetDeviceState(kDeviceStateIdle);
     if (device_state_ == kDeviceStateActivating) {
         SetDeviceState(kDeviceStateIdle);
         return;
@@ -334,10 +337,13 @@ void Application::Start() {
     auto& board = Board::GetInstance();
     SetDeviceState(kDeviceStateStarting);
 
+    debug_open();
+
     /* Setup the display */
     auto display = board.GetDisplay();
 
     /* Setup the audio codec */
+    ESP_LOGW(TAG, "[ZB]Audio codec initializing...");
     auto codec = board.GetAudioCodec();
     opus_decoder_ = std::make_unique<OpusDecoderWrapper>(codec->output_sample_rate(), 1, OPUS_FRAME_DURATION_MS);
     opus_encoder_ = std::make_unique<OpusEncoderWrapper>(16000, 1, OPUS_FRAME_DURATION_MS);
@@ -358,6 +364,7 @@ void Application::Start() {
     }
     codec->Start();
 
+    ESP_LOGW(TAG, "[ZB]Audio codec initializing... done");
     xTaskCreatePinnedToCore([](void* arg) {
         Application* app = (Application*)arg;
         app->AudioLoop();
@@ -365,16 +372,23 @@ void Application::Start() {
     }, "audio_loop", 4096 * 2, this, 8, &audio_loop_task_handle_, realtime_chat_enabled_ ? 1 : 0);
 
     /* Wait for the network to be ready */
+    ESP_LOGW(TAG, "[ZB]Network initializing...");
     board.StartNetwork();
 
     // Check for new firmware version or get the MQTT broker address
-    CheckNewVersion();
+    ESP_LOGW(TAG, "[ZB]TEST disable check new version");
+    //CheckNewVersion();
 
     // Initialize the protocol
+    ESP_LOGW(TAG, "[ZB]Protocol initializing...");
     display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
 #ifdef CONFIG_CONNECTION_TYPE_WEBSOCKET
+    //日志
+    ESP_LOGW(TAG, "[ZB]Websocket protocol initializing...");
     protocol_ = std::make_unique<WebsocketProtocol>();
 #else
+    //日志
+    ESP_LOGW(TAG, "[ZB]MQTT protocol initializing...");
     protocol_ = std::make_unique<MqttProtocol>();
 #endif
     protocol_->OnNetworkError([this](const std::string& message) {
@@ -554,16 +568,18 @@ void Application::Start() {
 #endif
 
     // Wait for the new version check to finish
-    xEventGroupWaitBits(event_group_, CHECK_NEW_VERSION_DONE_EVENT, pdTRUE, pdFALSE, portMAX_DELAY);
+    // xEventGroupWaitBits(event_group_, CHECK_NEW_VERSION_DONE_EVENT, pdTRUE, pdFALSE, portMAX_DELAY);
     SetDeviceState(kDeviceStateIdle);
-    std::string message = std::string(Lang::Strings::VERSION) + ota_.GetCurrentVersion();
-    display->ShowNotification(message.c_str());
-    display->SetChatMessage("system", "");
+    // std::string message = std::string(Lang::Strings::VERSION) + ota_.GetCurrentVersion();
+    // display->ShowNotification(message.c_str());
+    // display->SetChatMessage("system", "");
     // Play the success sound to indicate the device is ready
     ResetDecoder();
     PlaySound(Lang::Sounds::P3_SUCCESS);
     
     // Enter the main event loop
+    //日志
+    ESP_LOGW(TAG, "[ZB]Main event loop");
     MainEventLoop();
 }
 
@@ -927,3 +943,62 @@ bool Application::CanEnterSleepMode() {
     // Now it is safe to enter sleep mode
     return true;
 }
+
+void Application::TestSendAudio(const std::vector<uint8_t>& data) {
+    Schedule([this,data = std::move(data)]() {
+        if (protocol_) {
+            protocol_->SendAudio(data);
+        }
+    });
+}
+void Application::TestSendText(const std::string& text) {
+    Schedule([this,text = std::move(text)]() {
+        if (protocol_) {
+            protocol_->SendText(text);
+        }
+    });
+}
+void Application::TestOpenAudioChannel() {
+    if (!protocol_) {
+        ESP_LOGE(TAG, "Protocol not initialized");
+        return;
+    }
+    SetDeviceState(kDeviceStateIdle);
+    
+
+    Schedule([this]() {
+        if (!protocol_->IsAudioChannelOpened()) {
+            SetDeviceState(kDeviceStateConnecting);
+            if (!protocol_->OpenAudioChannel()) {
+                return;
+            }
+        }
+
+        // SetListeningMode(kListeningModeManualStop);
+    });
+   
+}
+void Application::TestCloseAudioChannel() {
+    Schedule([this]() {
+        if (protocol_) {
+            protocol_->CloseAudioChannel();
+        }
+    });
+}
+void Application::TestSendStartListening() {
+    Schedule([this]() {
+        if (protocol_) {
+            protocol_->SendStartListening(kListeningModeManualStop);
+        }
+    });
+}
+void Application::TestSendStopListening() {
+    Schedule([this]() {
+        if (protocol_) {
+            protocol_->SendStopListening();
+        }
+    });
+}
+
+
+

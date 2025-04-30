@@ -90,13 +90,16 @@ void WifiBoard::StartNetwork() {
         std::string notification = Lang::Strings::CONNECT_TO;
         notification += ssid;
         notification += "...";
+        ESP_LOGI(TAG, "[ZB]Connect to %s", notification.c_str());
         display->ShowNotification(notification.c_str(), 30000);
     });
     wifi_station.OnConnected([this](const std::string& ssid) {
         auto display = Board::GetInstance().GetDisplay();
         std::string notification = Lang::Strings::CONNECTED_TO;
         notification += ssid;
+        ESP_LOGI(TAG, "[ZB]Connected to %s", notification.c_str());
         display->ShowNotification(notification.c_str(), 30000);
+        
     });
     wifi_station.Start();
 

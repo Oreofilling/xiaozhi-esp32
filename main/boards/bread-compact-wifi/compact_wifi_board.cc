@@ -14,6 +14,8 @@
 #include <driver/i2c_master.h>
 #include <esp_lcd_panel_ops.h>
 #include <esp_lcd_panel_vendor.h>
+#include "driver/uart.h"
+
 
 #ifdef SH1106
 #include <esp_lcd_panel_sh1106.h>
@@ -111,11 +113,14 @@ private:
             }
             app.ToggleChatState();
         });
-        touch_button_.OnPressDown([this]() {
-            Application::GetInstance().StartListening();
+        touch_button_.OnClick([this]() {
+            ESP_LOGW(TAG, "[ZB]Touch button clicked");
+            //listenging mode
+     
         });
-        touch_button_.OnPressUp([this]() {
-            Application::GetInstance().StopListening();
+        touch_button_.OnLongPress([this]() {
+            ESP_LOGW(TAG, "[ZB]Touch button long pressed");
+           
         });
 
         volume_up_button_.OnClick([this]() {
@@ -152,8 +157,8 @@ private:
     // 物联网初始化，添加对 AI 可见设备
     void InitializeIot() {
         auto& thing_manager = iot::ThingManager::GetInstance();
-        thing_manager.AddThing(iot::CreateThing("Speaker"));
-        thing_manager.AddThing(iot::CreateThing("Lamp"));
+        //thing_manager.AddThing(iot::CreateThing("Speaker"));
+        //thing_manager.AddThing(iot::CreateThing("Lamp"));
     }
 
 public:
