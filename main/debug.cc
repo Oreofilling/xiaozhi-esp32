@@ -18,6 +18,7 @@
 #include "debug.h"
 #include "cJSON.h"
 #include "application.h"
+#include <esp_camera.h>
 
 #define TAG "-->DEBUG"
 /* Prompt to be printed before each line.
@@ -32,6 +33,31 @@ typedef struct mdDebug {
     bool isInit;    ///< Initialization flag
 } mdDebug_t;
 
+
+// Camera pin configuration for ESP32-CAM AI Thinker
+#define CAMERA_MODULE_NAME "ESP-S3-EYE"
+#define CAMERA_PIN_PWDN -1  // Not used
+#define CAMERA_PIN_RESET -1 // Not used
+
+// Camera interface pins
+#define CAMERA_PIN_VSYNC GPIO_NUM_6   // Vertical sync
+#define CAMERA_PIN_HREF GPIO_NUM_7    // Horizontal reference
+#define CAMERA_PIN_PCLK GPIO_NUM_13   // Pixel clock
+#define CAMERA_PIN_XCLK GPIO_NUM_15   // System clock
+
+// I2C pins for camera control
+#define CAMERA_PIN_SIOD GPIO_NUM_4    // I2C data
+#define CAMERA_PIN_SIOC GPIO_NUM_5    // I2C clock
+
+// Camera data bus pins
+#define CAMERA_PIN_D0 GPIO_NUM_11     // Data bit 0
+#define CAMERA_PIN_D1 GPIO_NUM_9      // Data bit 1
+#define CAMERA_PIN_D2 GPIO_NUM_8      // Data bit 2
+#define CAMERA_PIN_D3 GPIO_NUM_10     // Data bit 3
+#define CAMERA_PIN_D4 GPIO_NUM_12     // Data bit 4
+#define CAMERA_PIN_D5 GPIO_NUM_18     // Data bit 5
+#define CAMERA_PIN_D6 GPIO_NUM_17     // Data bit 6
+#define CAMERA_PIN_D7 GPIO_NUM_16     // Data bit 7
 
 
 static mdDebug_t g_debug = {0};
@@ -245,6 +271,16 @@ static int send_audio_request(int argc, char **argv)
     return 0;
 }
 
+static int capture_image_request(int argc, char **argv)
+{
+    ESP_LOGW(TAG, "capture image request");
+    auto& app = Application::GetInstance();
+    auto  ret = app.TestCaptureImage();
+    if (ret) {
+        ESP_LOGW(TAG, "image captured");
+    }
+    return 0;
+}
 static int send_image_request(int argc, char **argv)
 {
     ESP_LOGW(TAG, "send image request");
@@ -264,6 +300,90 @@ static int send_video_request(int argc, char **argv)
 static int send_file_request(int argc, char **argv)
 {
     ESP_LOGW(TAG, "send file request");
+    return 0;
+}
+
+static int init_camera_request(int argc, char **argv)
+{
+    ESP_LOGW(TAG, "init camera request");
+    camera_config_t camera_config = {
+            .pin_pwdn = CAMERA_PIN_PWDN,
+            .pin_reset = CAMERA_PIN_RESET,
+            .pin_xclk = CAMERA_PIN_XCLK,
+            .pin_sccb_sda = CAMERA_PIN_SIOD,
+            .pin_sccb_scl = CAMERA_PIN_SIOC,
+
+            .pin_d7 = CAMERA_PIN_D7,
+            .pin_d6 = CAMERA_PIN_D6,
+            .pin_d5 = CAMERA_PIN_D5,
+            .pin_d4 = CAMERA_PIN_D4,
+            .pin_d3 = CAMERA_PIN_D3,
+            .pin_d2 = CAMERA_PIN_D2,
+            .pin_d1 = CAMERA_PIN_D1,
+            .pin_d0 = CAMERA_PIN_D0,
+            .pin_vsync = CAMERA_PIN_VSYNC,
+            .pin_href = CAMERA_PIN_HREF,
+            .pin_pclk = CAMERA_PIN_PCLK,
+
+            //XCLK 20MHz or 10MHz for OV2640 double FPS (Experimental)
+            .xclk_freq_hz = 5000000,
+            .ledc_timer = LEDC_TIMER_0,
+            .ledc_channel = LEDC_CHANNEL_0,
+
+            .pixel_format = PIXFORMAT_JPEG, //YUV422,GRAYSCALE,RGB565,JPEG
+            .frame_size = FRAMESIZE_FHD,    //QQVGA-UXGA, For ESP32, do not use sizes above QVGA when not JPEG. The performance of the ESP32-S series has improved a lot, but JPEG mode always gives better frame rates.
+
+            .jpeg_quality = 12, //0-63, for OV series camera sensors, lower number means higher quality
+            .fb_count = 2,       //When jpeg mode is used, if fb_count more than one, the driver will work in continuous mode.
+            .fb_location = CAMERA_FB_IN_PSRAM,
+            .grab_mode = CAMERA_GRAB_LATEST,
+        };
+
+        //print all camera config 
+        ESP_LOGI(TAG, "--- Camera Configuration ---");
+
+    // Pin Definitions
+    ESP_LOGI(TAG, "pin_pwdn:    %d", camera_config.pin_pwdn);
+    ESP_LOGI(TAG, "pin_reset:   %d", camera_config.pin_reset);
+    ESP_LOGI(TAG, "pin_xclk:    %d", camera_config.pin_xclk);
+    ESP_LOGI(TAG, "pin_sccb_sda:%d", camera_config.pin_sccb_sda);
+    ESP_LOGI(TAG, "pin_sccb_scl:%d", camera_config.pin_sccb_scl);
+    ESP_LOGI(TAG, "pin_d7:      %d", camera_config.pin_d7);
+    ESP_LOGI(TAG, "pin_d6:      %d", camera_config.pin_d6);
+    ESP_LOGI(TAG, "pin_d5:      %d", camera_config.pin_d5);
+    ESP_LOGI(TAG, "pin_d4:      %d", camera_config.pin_d4);
+    ESP_LOGI(TAG, "pin_d3:      %d", camera_config.pin_d3);
+    ESP_LOGI(TAG, "pin_d2:      %d", camera_config.pin_d2);
+    ESP_LOGI(TAG, "pin_d1:      %d", camera_config.pin_d1);
+    ESP_LOGI(TAG, "pin_d0:      %d", camera_config.pin_d0);
+    ESP_LOGI(TAG, "pin_vsync:   %d", camera_config.pin_vsync);
+    ESP_LOGI(TAG, "pin_href:    %d", camera_config.pin_href);
+    ESP_LOGI(TAG, "pin_pclk:    %d", camera_config.pin_pclk);
+
+    // Clock Settings
+    ESP_LOGI(TAG, "xclk_freq_hz:%d", camera_config.xclk_freq_hz);
+    ESP_LOGI(TAG, "ledc_timer:  %d", camera_config.ledc_timer);
+    ESP_LOGI(TAG, "ledc_channel:%d", camera_config.ledc_channel);
+
+    // Image Settings
+    // Note: These print integer values. Refer to esp_camera.h for enum definitions.
+    ESP_LOGI(TAG, "pixel_format:%d", camera_config.pixel_format);
+    ESP_LOGI(TAG, "frame_size:  %d", camera_config.frame_size);
+    ESP_LOGI(TAG, "jpeg_quality:%d", camera_config.jpeg_quality);
+    ESP_LOGI(TAG, "fb_count:    %d", camera_config.fb_count);
+    ESP_LOGI(TAG, "fb_location: %d", camera_config.fb_location);
+    ESP_LOGI(TAG, "grab_mode:   %d", camera_config.grab_mode);
+
+
+    ESP_LOGI(TAG, "--- End Configuration ---");
+    //initialize the camera
+    esp_err_t err = esp_camera_init(&camera_config);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Camera Init Failed");
+        return 0;
+    }
+    ESP_LOGI(TAG, "Camera Init Success");
     return 0;
 }
 /* ---------------------------------TEST------------------------------------------*/
@@ -292,6 +412,8 @@ static esp_console_cmd_t g_cmd[] = {
     {"listen_stop", "listen stop", NULL, send_listen_stop_request, NULL},
     {"send_text", "send text", NULL, send_text_request, NULL},
     {"send_audio", "send audio", NULL, send_audio_request, NULL},
+    {"init_camera", "init camera", NULL, init_camera_request, NULL},
+    {"capture_image", "capture image", NULL, capture_image_request, NULL},
     {"send_image", "send image", NULL, send_image_request, NULL},
     {"send_video", "send video", NULL, send_video_request, NULL},
     {"send_file", "send file", NULL, send_file_request, NULL},

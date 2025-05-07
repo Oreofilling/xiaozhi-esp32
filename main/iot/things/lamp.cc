@@ -20,6 +20,7 @@ private:
     bool power_ = false;
 
     void InitializeGpio() {
+        ESP_LOGI(TAG, "initialize lamp gpio");
         gpio_config_t config = {
             .pin_bit_mask = (1ULL << gpio_num_),
             .mode = GPIO_MODE_OUTPUT,

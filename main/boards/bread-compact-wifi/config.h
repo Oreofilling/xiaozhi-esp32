@@ -11,17 +11,17 @@
 
 #ifdef AUDIO_I2S_METHOD_SIMPLEX
 
-#define AUDIO_I2S_MIC_GPIO_WS   GPIO_NUM_4
-#define AUDIO_I2S_MIC_GPIO_SCK  GPIO_NUM_5
-#define AUDIO_I2S_MIC_GPIO_DIN  GPIO_NUM_6
-#define AUDIO_I2S_SPK_GPIO_DOUT GPIO_NUM_7
-#define AUDIO_I2S_SPK_GPIO_BCLK GPIO_NUM_15
-#define AUDIO_I2S_SPK_GPIO_LRCK GPIO_NUM_16
+#define AUDIO_I2S_MIC_GPIO_WS   GPIO_NUM_1
+#define AUDIO_I2S_MIC_GPIO_SCK  GPIO_NUM_2
+#define AUDIO_I2S_MIC_GPIO_DIN  GPIO_NUM_3
+#define AUDIO_I2S_SPK_GPIO_DOUT GPIO_NUM_19
+#define AUDIO_I2S_SPK_GPIO_BCLK GPIO_NUM_41
+#define AUDIO_I2S_SPK_GPIO_LRCK GPIO_NUM_42
 
 #else
 
-#define AUDIO_I2S_GPIO_WS GPIO_NUM_4
-#define AUDIO_I2S_GPIO_BCLK GPIO_NUM_5
+#define AUDIO_I2S_GPIO_WS GPIO_NUM_44
+#define AUDIO_I2S_GPIO_BCLK GPIO_NUM_55
 #define AUDIO_I2S_GPIO_DIN  GPIO_NUM_6
 #define AUDIO_I2S_GPIO_DOUT GPIO_NUM_7
 
@@ -37,6 +37,36 @@
 #define DISPLAY_SDA_PIN GPIO_NUM_41
 #define DISPLAY_SCL_PIN GPIO_NUM_42
 #define DISPLAY_WIDTH   128
+
+// Camera pin configuration for ESP32-CAM AI Thinker
+#define CAMERA_MODULE_NAME "ESP-S3-EYE"
+#define CAMERA_PIN_PWDN -1  // Not used
+#define CAMERA_PIN_RESET -1 // Not used
+
+// Camera interface pins
+#define CAMERA_PIN_VSYNC GPIO_NUM_6   // Vertical sync
+#define CAMERA_PIN_HREF GPIO_NUM_7    // Horizontal reference
+#define CAMERA_PIN_PCLK GPIO_NUM_13   // Pixel clock
+#define CAMERA_PIN_XCLK GPIO_NUM_15   // System clock
+
+// I2C pins for camera control
+#define CAMERA_PIN_SIOD GPIO_NUM_4    // I2C data
+#define CAMERA_PIN_SIOC GPIO_NUM_5    // I2C clock
+
+// Camera data bus pins
+#define CAMERA_PIN_D0 GPIO_NUM_11     // Data bit 0
+#define CAMERA_PIN_D1 GPIO_NUM_9      // Data bit 1
+#define CAMERA_PIN_D2 GPIO_NUM_8      // Data bit 2
+#define CAMERA_PIN_D3 GPIO_NUM_10     // Data bit 3
+#define CAMERA_PIN_D4 GPIO_NUM_12     // Data bit 4
+#define CAMERA_PIN_D5 GPIO_NUM_18     // Data bit 5
+#define CAMERA_PIN_D6 GPIO_NUM_17     // Data bit 6
+#define CAMERA_PIN_D7 GPIO_NUM_16     // Data bit 7
+
+#define SENSOR_POWER_IO (GPIO_NUM_3)
+#define PWM_IO          (47)      /* PWM output pin */
+#define PWM_FREQ        (20000)   /* PWM frequency in Hz */
+#define PWM_MIN_DUTY    (5)       /* Minimum PWM duty cycle */
 
 #if CONFIG_OLED_SSD1306_128X32
 #define DISPLAY_HEIGHT  32

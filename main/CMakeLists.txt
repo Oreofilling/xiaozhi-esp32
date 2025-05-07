@@ -10,6 +10,8 @@ set(SOURCES "audio_codecs/audio_codec.cc"
             "display/display.cc"
             "display/lcd_display.cc"
             "display/oled_display.cc"
+            "camera/camera.cc"
+            "camera/camera_ne101.cc"
             "protocols/protocol.cc"
             "iot/thing.cc"
             "iot/thing_manager.cc"
@@ -22,7 +24,7 @@ set(SOURCES "audio_codecs/audio_codec.cc"
             "main.cc"
             )
 
-set(INCLUDE_DIRS "." "display" "audio_codecs" "protocols" "audio_processing")
+set(INCLUDE_DIRS "." "display" "audio_codecs" "protocols" "audio_processing" "camera")
 
 # 添加 IOT 相关文件
 file(GLOB IOT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/iot/things/*.cc)
@@ -148,6 +150,7 @@ file(GLOB BOARD_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/boards/${BOARD_TYPE}/*.c
 )
 list(APPEND SOURCES ${BOARD_SOURCES})
+list(APPEND INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/boards/${BOARD_TYPE}/)
 
 if(CONFIG_CONNECTION_TYPE_MQTT_UDP)
     list(APPEND SOURCES "protocols/mqtt_protocol.cc")
@@ -218,3 +221,5 @@ add_custom_command(
 add_custom_target(lang_header ALL
     DEPENDS ${LANG_HEADER}
 )
+
+

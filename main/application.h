@@ -79,6 +79,7 @@ public:
     void TestCloseAudioChannel();
     void TestSendStartListening();
     void TestSendStopListening();
+    bool TestCaptureImage();
 
 private:
     Application();

@@ -2,6 +2,7 @@
 #include "system_info.h"
 #include "settings.h"
 #include "display/display.h"
+#include "camera/camera.h"
 #include "assets/lang_config.h"
 
 #include <esp_log.h>
@@ -56,6 +57,11 @@ Display* Board::GetDisplay() {
 Led* Board::GetLed() {
     static NoLed led;
     return &led;
+}
+
+Camera* Board::GetCamera() {
+    static NoCamera camera;
+    return &camera;
 }
 
 std::string Board::GetJson() {

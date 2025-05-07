@@ -16,7 +16,7 @@
 #include <driver/gpio.h>
 #include <arpa/inet.h>
 #include "debug.h"
-
+#include "camera/camera.h"
 #define TAG "Application"
 
 
@@ -365,11 +365,11 @@ void Application::Start() {
     codec->Start();
 
     ESP_LOGW(TAG, "[ZB]Audio codec initializing... done");
-    xTaskCreatePinnedToCore([](void* arg) {
-        Application* app = (Application*)arg;
-        app->AudioLoop();
-        vTaskDelete(NULL);
-    }, "audio_loop", 4096 * 2, this, 8, &audio_loop_task_handle_, realtime_chat_enabled_ ? 1 : 0);
+    // xTaskCreatePinnedToCore([](void* arg) {
+    //     Application* app = (Application*)arg;
+    //     app->AudioLoop();
+    //     vTaskDelete(NULL);
+    // }, "audio_loop", 4096 * 2, this, 8, &audio_loop_task_handle_, realtime_chat_enabled_ ? 1 : 0);
 
     /* Wait for the network to be ready */
     ESP_LOGW(TAG, "[ZB]Network initializing...");
@@ -998,6 +998,104 @@ void Application::TestSendStopListening() {
             protocol_->SendStopListening();
         }
     });
+}
+
+#include <string>
+#include <vector>
+
+static const char base64_chars[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghijklmnopqrstuvwxyz"
+    "0123456789+/";
+
+std::string Base64Encode(const unsigned char* bytes_to_encode, size_t in_len) {
+    std::string ret;
+    int i = 0;
+    int j = 0;
+    unsigned char char_array_3[3];
+    unsigned char char_array_4[4];
+
+    while (in_len--) {
+        char_array_3[i++] = *(bytes_to_encode++);
+        if (i == 3) {
+            char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
+            char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
+            char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
+            char_array_4[3] = char_array_3[2] & 0x3f;
+
+            for(i = 0; i < 4; i++)
+                ret += base64_chars[char_array_4[i]];
+            i = 0;
+        }
+    }
+
+    if (i) {
+        for(j = i; j < 3; j++)
+            char_array_3[j] = '\0';
+
+        char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
+        char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
+        char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
+        char_array_4[3] = char_array_3[2] & 0x3f;
+
+        for (j = 0; j < i + 1; j++)
+            ret += base64_chars[char_array_4[j]];
+
+        while((i++ < 3))
+            ret += '=';
+    }
+
+    return ret;
+}
+
+bool  Application::TestCaptureImage() {
+    auto& board = Board::GetInstance();
+    auto camera = board.GetCamera();
+    if (camera) {
+        char* pImageBuf = (char*)camera->Capture("jpeg");
+        if(!pImageBuf) {
+            ESP_LOGE(TAG,"capture image failed");
+            return false;
+        }
+
+        //base64 encode
+        std::string base64_image;
+        base64_image = Base64Encode(reinterpret_cast<const unsigned char*>(pImageBuf), camera->GetBufferSize());
+
+        //send binary data to server
+        // std::vector<unsigned char> audio_vec(
+        //     reinterpret_cast<unsigned char*>(pImageBuf),
+        //     reinterpret_cast<unsigned char*>(pImageBuf) + camera->GetBufferSize()
+        // );
+        // Schedule([this,audio_vec]() {
+        //     if (protocol_) {
+        //         protocol_->SendAudio(audio_vec);
+        //     }
+        // });
+        //ESP_LOGW(TAG,"base64_image: %s", base64_image.c_str());
+
+        //construct json:{"type":"image","image":"base64_image"}
+        std::string json;
+        json = "{\"type\":\"image\",\"image\":\"" + base64_image + "\"}";
+        // ESP_LOGW(TAG,"json: %s", json.c_str());
+
+        //send json to server
+        Schedule([this,json]() {
+            if (protocol_) {
+            protocol_->SendText(json);
+            }
+        });
+
+        // ESP_LOGW(TAG,"dump image buffer begin=============\n");
+        // for(int i = 0; i < camera->GetBufferSize(); i++) {
+        //     printf("%02x ", pImageBuf[i]);
+        //     if((i+1)%16 == 0)
+        //         printf("\n");
+        // }
+        // ESP_LOGW(TAG,"dump image buffer end=============\n");
+        return true;
+    }
+    return false;
 }
 
 
